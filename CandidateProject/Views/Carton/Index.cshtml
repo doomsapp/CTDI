@@ -46,26 +46,3 @@
 }
 
 </table>
-
-<script>
-    function removeAllItems(cartonId) {
-        if (confirm("Are you sure you want to remove all items from this carton?")) {
-            $.ajax({
-                url: '@Url.Action("RemoveAllItems", "Carton")',
-                type: 'POST',
-                data: { id: cartonId },
-                success: function (response) {
-                    if (response.success) {
-                        alert(response.message);
-                        location.reload();
-                    } else {
-                        alert(response.message);
-                    }
-                },
-                error: function () {
-                    alert("An error occurred while removing items.");
-                }
-            });
-        }
-    }
-</script>
