@@ -14,6 +14,9 @@
         <th>
             @Html.DisplayNameFor(model => model.CartonNumber)
         </th>
+        <th>
+            Equipment Count
+        </th>
         <th></th>
     </tr>
 
@@ -23,13 +26,46 @@
             @Html.DisplayFor(modelItem => item.CartonNumber)
         </td>
         <td>
-            @Html.ActionLink("Edit", "Edit", new { id=item.Id }) |
-            @Html.ActionLink("Details", "Details", new { id=item.Id }) |
+            @item.EquipmentCount
+        </td>
+        <td>
+            @Html.ActionLink("Edit", "Edit", new { id = item.Id }) |
+            @Html.ActionLink("Details", "Details", new { id = item.Id }) |
             @Html.ActionLink("Delete", "Delete", new { id = item.Id }) |
             @Html.ActionLink("AddEquipment", "AddEquipment", new { id = item.Id }) |
-            @Html.ActionLink("ViewCartonEquipment", "ViewCartonEquipment", new { id=item.Id })
+            @Html.ActionLink("ViewCartonEquipment", "ViewCartonEquipment", new { id = item.Id }) |
+            <!--<a href="#" onclick="removeAllItems(@item.Id)">Remove All Items</a>--> <!-- Remove All Items link -->
+            @*@Html.ActionLink("RemoveAllCartonItems", "RemoveAllCartonItems", @item.Id) |*@
+            @using (Html.BeginForm("RemoveAllCartonItems", "Carton", FormMethod.Post))
+            {
+                @Html.Hidden("cartonId", item.Id) <!-- Pass the carton ID -->
+                <button type="submit" class="btn btn-danger">Remove All Items</button>
+            }
         </td>
     </tr>
 }
 
 </table>
+
+<script>
+    function removeAllItems(cartonId) {
+        if (confirm("Are you sure you want to remove all items from this carton?")) {
+            $.ajax({
+                url: '@Url.Action("RemoveAllItems", "Carton")',
+                type: 'POST',
+                data: { id: cartonId },
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function () {
+                    alert("An error occurred while removing items.");
+                }
+            });
+        }
+    }
+</script>

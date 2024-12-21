@@ -20,7 +20,8 @@ namespace CandidateProject.Controllers
                 .Select(c => new CartonViewModel()
                 {
                     Id = c.Id,
-                    CartonNumber = c.CartonNumber
+                    CartonNumber = c.CartonNumber,
+                    EquipmentCount = db.CartonDetails.Count(cd => cd.CartonId == c.Id) // Count equipment in each carton
                 })
                 .ToList();
 

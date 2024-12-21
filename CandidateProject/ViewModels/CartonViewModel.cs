@@ -4,5 +4,8 @@
     {
         public int Id { get; set; }
         public string CartonNumber { get; set; }
+
+        //new property
+        public int EquipmentCount { get; set; }
     }
 }
