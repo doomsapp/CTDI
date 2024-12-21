@@ -127,15 +127,15 @@ namespace CandidateProject.Controllers
         }
 
         // POST: Carton/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public ActionResult DeleteConfirmed(int id)
-        {
-            Carton carton = db.Cartons.Find(id);
-            db.Cartons.Remove(carton);
-            db.SaveChanges();
-            return RedirectToAction("Index");
-        }
+        //[HttpPost, ActionName("Delete")]
+        //[ValidateAntiForgeryToken]
+        //public ActionResult DeleteConfirmed(int id)
+        //{
+        //    Carton carton = db.Cartons.Find(id);
+        //    db.Cartons.Remove(carton);
+        //    db.SaveChanges();
+        //    return RedirectToAction("Index");
+        //}
 
         protected override void Dispose(bool disposing)
         {
@@ -183,31 +183,72 @@ namespace CandidateProject.Controllers
 
         public ActionResult AddEquipmentToCarton([Bind(Include = "CartonId,EquipmentId")] AddEquipmentViewModel addEquipmentViewModel)
         {
-            if (ModelState.IsValid)
+
+            if (!ModelState.IsValid)
             {
-                var carton = db.Cartons
-                    .Include(c => c.CartonDetails)
-                    .Where(c => c.Id == addEquipmentViewModel.CartonId)
-                    .SingleOrDefault();
-                if (carton == null)
-                {
-                    return HttpNotFound();
-                }
-                var equipment = db.Equipments
-                    .Where(e => e.Id == addEquipmentViewModel.EquipmentId)
-                    .SingleOrDefault();
-                if (equipment == null)
-                {
-                    return HttpNotFound();
-                }
-                var detail = new CartonDetail()
-                {
-                    Carton = carton,
-                    Equipment = equipment
-                };
-                carton.CartonDetails.Add(detail);
-                db.SaveChanges();
+                return BadRequest("Invalid input. Please provide valid CartonId and EquipmentId.");
             }
+
+            int cartonId = addEquipmentViewModel.CartonId;
+            int equipmentId = addEquipmentViewModel.EquipmentId;
+
+            var carton = db.Cartons.FirstOrDefault(c => c.Id == cartonId);
+            var equipment = db.Equipments.FirstOrDefault(e => e.Id == equipmentId);
+
+            if (carton == null)
+            {
+                return BadRequest("Carton not found.");
+            }
+            if (equipment == null)
+            {
+                return BadRequest("Equipment not found.");
+            }
+
+            // Check if the carton is already full (max capacity of 10)
+            if (db.CartonDetails.Count(cd => cd.CartonId == cartonId) >= 10)
+            {
+                return BadRequest("Carton is full. Maximum capacity is 10.");
+            }
+
+            // Check if the equipment is already in another carton
+            if (db.CartonDetails.Any(cd => cd.EquipmentId == equipmentId))
+            {
+                return BadRequest("Equipment is already assigned to another carton.");
+            }
+
+            var cartonDetail = new CartonDetail
+            {
+                CartonId = cartonId,
+                EquipmentId = equipmentId
+            };
+            db.CartonDetails.Add(cartonDetail);
+            db.SaveChanges();
+
+            //if (ModelState.IsValid)
+            //{
+            //    var carton = db.Cartons
+            //        .Include(c => c.CartonDetails)
+            //        .Where(c => c.Id == addEquipmentViewModel.CartonId)
+            //        .SingleOrDefault();
+            //    if (carton == null)
+            //    {
+            //        return HttpNotFound();
+            //    }
+            //    var equipment = db.Equipments
+            //        .Where(e => e.Id == addEquipmentViewModel.EquipmentId)
+            //        .SingleOrDefault();
+            //    if (equipment == null)
+            //    {
+            //        return HttpNotFound();
+            //    }
+            //    var detail = new CartonDetail()
+            //    {
+            //        Carton = carton,
+            //        Equipment = equipment
+            //    };
+            //    carton.CartonDetails.Add(detail);
+            //    db.SaveChanges();
+            //}
             return RedirectToAction("AddEquipment", new { id = addEquipmentViewModel.CartonId });
         }
 
@@ -241,7 +282,6 @@ namespace CandidateProject.Controllers
 
 
         //1-Implement the RemoveEquipmentOnCarton action on the CartonController, right now it is just throwing a BadRequest.
-        [HttpPost]
         public ActionResult RemoveEquipmentOnCarton([Bind(Include = "CartonId,EquipmentId")] RemoveEquipmentViewModel removeEquipmentViewModel)
         {
 
@@ -263,17 +303,19 @@ namespace CandidateProject.Controllers
 
         //Bugs reported by the customers
         //1- We can delete empty cartons from the system, but cannot delete cartons that have items. We should be able to delete a carton at any time.
-        [HttpPost]
-        public ActionResult DeleteCarton(int cartonId)
+        //[HttpPost]
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteCarton(int id)
         {
-            var cartonDetails = db.CartonDetails.Where(cd => cd.CartonId == cartonId).ToList();
+            var cartonDetails = db.CartonDetails.Where(cd => cd.CartonId == id).ToList();
 
             if (cartonDetails.Any())
             {
                 db.CartonDetails.RemoveRange(cartonDetails);
             }
 
-            var carton = db.Cartons.FirstOrDefault(c => c.Id == cartonId);
+            var carton = db.Cartons.FirstOrDefault(c => c.Id == id);
 
             if (carton == null)
                 return BadRequest("Carton not found.");
@@ -281,36 +323,11 @@ namespace CandidateProject.Controllers
             db.Cartons.Remove(carton);
             db.SaveChanges();
 
-            return Json(new { success = true, message = "Carton deleted successfully." });
+            //return Json(new { success = true, message = "Carton deleted successfully." });
+            //return RedirectToAction("ViewCartonEquipment", new { id = id });
+            return RedirectToAction("Index");
         }
 
-        //2-We can add the same piece of equipment to 2 different cartons, this doesn’t make sense. We should only be able to add a piece of equipment to 1 carton, once a piece of equipment is on a carton it should be unavailable to place on another carton.
-        [HttpPost]
-        public ActionResult AddEquipmentToCarton(int cartonId, int equipmentId)
-        {
-            var carton = db.Cartons.FirstOrDefault(c => c.Id == cartonId);
-            var equipment = db.Equipments.FirstOrDefault(e => e.Id == equipmentId);
-
-            if (carton == null || equipment == null)
-                return BadRequest("Carton or equipment not found.");
-
-            if (db.CartonDetails.Count(cd => cd.CartonId == cartonId) >= 10)
-                return BadRequest("Carton is full. Maximum capacity is 10.");
-            
-            if (db.CartonDetails.Any(cd => cd.EquipmentId == equipmentId))
-                return BadRequest("Equipment is already in another carton.");
-
-            var cartonDetail = new CartonDetail
-            {
-                CartonId = cartonId,
-                EquipmentId = equipmentId
-            };
-
-            db.CartonDetails.Add(cartonDetail);
-            db.SaveChanges();
-
-            return Json(new { success = true, message = "Equipment added to carton." });
-        }
 
         [HttpPost]
         public ActionResult RemoveAllCartonItems(int cartonId)
@@ -330,7 +347,7 @@ namespace CandidateProject.Controllers
         private ActionResult BadRequest(string message)
         {
             Response.StatusCode = 400;
-            return Json(new { success = false, message });
+            return Json(new { success = false, message }, JsonRequestBehavior.AllowGet);
         }
 
 
